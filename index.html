@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title>Wavid</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<style>
+		body {
+			font-family: Monospace;
+			font-weight: bold;
+			background-color: #B6E6FF;
+			margin: 0px;
+			overflow: hidden;
+		}
+		.table {
+			display: table;
+			position: absolute;
+			width: 100%;
+			height: 100%;
+		}
+		.table-cell {
+			display: table-cell;
+			vertical-align: middle;
+			text-align: center;
+		}
+	</style>
+</head>
+<body>
+
+	<script src="js/three.js"></script>
+	<script src="js/Detector.js"></script>
+	<script src="js/stats.min.js"></script>
+	<script src="js/dat.gui.min.js"></script>
+	<script src="js/OrbitControls.js"></script>
+	<script src="js/OutlineEffect.js"></script>
+	<script src="js/THREEx.KeyboardState.js"></script>
+	<script src="js/THREEx.FullScreen.js"></script>
+	<script src="js/underscore-min.js"></script>
+
+	<script src="js/SimplexNoise.js"></script>
+	<script src="js/GPUComputationRenderer.js"></script>
+	<script src="shaders/heightmap.js"></script>
+	<script src="shaders/smooth.js"></script>
+	<script src="shaders/water.js"></script>
+
+	<script src="js/oimo.min.js"></script>
+	<script src="js/VRController.js"></script>
+
+	<script src="js/tween.min.js"></script>
+
+
+	<div id="container"></div>
+
+	<div id="loading" class="table">
+		<div class="table-cell">Loading...</div>
+	</div>
+
+	<script>
+
+		var container, scene, camera, renderer, effect, controls, stats;
+		var keyboard = new THREEx.KeyboardState();
+		var clock = new THREE.Clock();
+
+		var wavidGroup, wavidMesh;
+		var bobbin, edgar, h2dough, poolygon, vince;
+
+		var dlh, ah, ch; // dlighthelper, axishelper, camhelper
+
+		var floaties = [];
+		
+		var config = {
+			debug: true
+		};
+
+		var cube, world, body, ground;
+
+		var setup = _.after(12, function(){
+
+			h2dough.position.set( 90, 0, -200 );
+			poolygon.position.set( 180, 0, -200 );
+			vince.position.set( -180, 0, -200 );
+			edgar.position.set( -90, 0, -200 );
+			bobbin.position.set( 0, 0, -200 );
+
+			// var wireframe = new THREE.WireframeGeometry( poolygon.geometry );
+			// var line = new THREE.LineSegments( wireframe );
+			// line.material.color.setHex(0x000000);
+			// line.material.transparent = true;
+			// line.material.opacity = 0.3;
+			// poolygon.add( line );
+
+			var loading = document.getElementById('loading')
+			document.body.removeChild( loading );
+
+			container.appendChild( renderer.domElement );
+			container.appendChild( stats.domElement );
+
+			loop();
+		});
+
+		init();
+
+		function init() {
+
+			scene = new THREE.Scene();
+
+			camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 20000 );
+			scene.add( camera );
+			camera.position.set(-300,200,200);
+			camera.lookAt( scene.position );
+
+			renderer = new THREE.WebGLRenderer({ antialias: true });
+			renderer.setClearColor( 0xB6E6FF, 1 );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			container = document.getElementById('container');
+			// container.appendChild( renderer.domElement );
+
+			effect = new THREE.OutlineEffect( renderer, {
+				defaultThickness: 0.002,
+				// defaultColor: new THREE.Color( 0x888888 ),
+				// defaultAlpha: 0.8,
+				// defaultKeepAlive: true // keeps outline material in cache even if material is removed from scene
+			});
+
+			THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+			
+			if ( config.debug ) {
+				controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls.enableKeys = false;
+			}
+
+			stats = new Stats();
+			// container.appendChild( stats.domElement );
+
+			var textureLoader = new THREE.TextureLoader();
+			var jsonLoader = new THREE.JSONLoader();
+
+			// floor / water
+			// var floorTexture = textureLoader.load( 'images/checkerboard.jpg', setup );
+			// floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
+			// floorTexture.repeat.set( 10, 10 );
+			// var floorMaterial = new THREE.MeshBasicMaterial({
+			var floorMaterial = new THREE.MeshPhongMaterial({ // needs to be phong to receive shadow
+				color: 0x00BFF3,
+				// map: floorTexture,
+				side: THREE.DoubleSide,
+				transparent: true,
+				opacity: 0.8
+			});
+			var floorGeometry = new THREE.PlaneGeometry( 1000, 1000, 10, 10 );
+			var floor = new THREE.Mesh( floorGeometry, floorMaterial );
+			floor.position.y = -0.5;
+			floor.rotation.x = - Math.PI / 2;
+			scene.add( floor );
+
+			// SKYBOX/FOG
+			var skyBoxGeometry = new THREE.BoxGeometry( 10000, 10000, 10000 );
+			var skyBoxMaterial = new THREE.MeshBasicMaterial({
+				color: 0x9999ff,
+				side: THREE.BackSide
+			});
+			var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
+			// scene.add(skyBox);
+
+			// this causes an error with OutlineEffect
+			// scene.fog = new THREE.FogExp2( 0x9999ff, 0.00025 );
+
+			//
+
+			wavidGroup = new THREE.Group();
+
+			wavidGroup.position.set( 0, 4, 0 );
+			scene.add( wavidGroup );
+
+			wavidGroup.userData.rotDest = 0;
+			wavidGroup.userData.xDest = 0;
+			wavidGroup.userData.yDest = 0;
+
+			wavidDest = new THREE.Mesh(
+				new THREE.BoxBufferGeometry(25,25,25),
+				new THREE.MeshNormalMaterial()
+			);
+			wavidDest.position.set( 0, 4, 0 );
+			wavidDest.visible = false;
+			scene.add( wavidDest );
+
+			// var tween = new TWEEN.Tween( wavidGroup.position )
+			// 						.to( wavidDest.position, 1000 )
+			// 						.start();
+
+			// wavidGroup.add( new THREE.AxisHelper(70) );
+
+			// LIGHTS
+			var aLight = new THREE.AmbientLight( 0x777777 );
+			scene.add( aLight );
+
+			var dLight = window.dLight = new THREE.DirectionalLight( 0xcccccc, 0.7 );
+			dLight.position.set( -80, 150, 80 ).multiplyScalar(3);
+			scene.add( dLight );
+
+			dlh = new THREE.DirectionalLightHelper( dLight, 30 );
+			// scene.add( dlh );
+
+			ah = new THREE.AxisHelper(30);
+			// scene.add( ah );
+			
+			if (config.debug) {
+				scene.add( dlh, ah );
+			}
+
+			// dlh.visible = ah.visible = config.debug;
+
+			// ---------------------------------------------
+
+			// window.addEventListener( 'vr controller connected', function( event ){
+			// 	var controller = event.detail;
+			// 	if ( controller.gamepadStyle == 'xbox' ) {
+			// 	}
+			// });
+
+			// ---------------------------------------------
+
+			// oimo physics
+
+			// todo:
+			// http://lo-th.github.io/Oimo.js/#kinematic
+
+			world = new OIMO.World({ 
+				timestep: 1/60, 
+				iterations: 8, 
+				broadphase: 2, // 1 brute force, 2 sweep and prune, 3 volume tree
+				worldscale: 100, // scale full world 
+				random: true,  // randomize sample
+				info: false,   // calculate statistic or not
+				gravity: [0,-9.8,0] 
+			});
+
+			ground = world.add({
+				type: 'box',
+				size:[1000, 10, 1000],
+				pos:[0,-5.5,0],
+				density:1
+			});
+
+			//
+
+			cube = new THREE.Mesh(
+				new THREE.BoxBufferGeometry(50,50,50),
+				new THREE.MeshNormalMaterial()
+			);
+			cube.position.set(0,200,100);
+			scene.add( cube );
+
+			body = world.add({ 
+				type:'box', // type of shape : sphere, box, cylinder 
+				size:[50,50,50], // size of shape
+				pos: cube.position.toArray(), // start position in degree
+				rot:[0,0,0], // start rotation in degree
+				move:true, // dynamic or statique
+				density: 1,
+				friction: 0.2,
+				restitution: 0.2,
+				belongsTo: 1, // The bits of the collision groups to which the shape belongs.
+				collidesWith: 0xffffffff, // The bits of the collision groups with which the shape collides.
+				name: 'cube'
+			});
+
+			body.connectMesh( cube ); // auto update position and rotation
+
+			// body.position.y = 1
+
+			//
+
+			cube2 = new THREE.Mesh(
+				new THREE.BoxBufferGeometry(50,50,50),
+				new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true })
+			);
+			cube2.position.set(0,100,100);
+			scene.add( cube2 );
+
+			wavidBody = world.add({ 
+				type:'box', // type of shape : sphere, box, cylinder 
+				size:[50,50,50], // size of shape
+				pos: cube2.position.toArray(), // start position in degree
+				rot:[0,0,0], // start rotation in degree
+				move:true, // dynamic or statique
+				density: 50,
+				friction: 0.2,
+				restitution: 0.2,
+				kinematic: true,
+				belongsTo: 1, // The bits of the collision groups to which the shape belongs.
+				collidesWith: 0xffffffff, // The bits of the collision groups with which the shape collides.
+				name: 'wavid'
+			});
+
+			wavidBody.connectMesh( cube2 ); // auto update position and rotation
+
+			// ----------------------------------------------
+
+			// wavid
+
+			// var wavidMat = new THREE.MeshBasicMaterial({
+			// var wavidMat = new THREE.MeshStandardMaterial({
+			// var wavidMat = new THREE.MeshPhongMaterial({
+			var wavidMat = new THREE.MeshToonMaterial({
+				map: textureLoader.load( 'models/wavid.png', setup ),
+				specular: 0x333333,
+				// shininess: 50
+				shininess: 20
+			});
+
+			jsonLoader.load( 'models/wavid.js', function(geometry) {
+				wavidMesh = new THREE.Mesh(geometry, wavidMat);
+				wavidGroup.add( wavidMesh );
+				wavidMesh.scale.setScalar( 20 );
+				wavidMesh.rotation.y = Math.PI;
+				floaties.push( wavidMesh );
+				if (!config.debug) wavidMesh.position.z = 60;
+
+				wavidMesh.castShadow = true; //default is false
+				wavidMesh.receiveShadow = false; //default
+
+
+
+				// wavidCube = new THREE.Mesh(
+				// 	new THREE.BoxBufferGeometry(50/20,50/20,50/20),
+				// 	new THREE.MeshNormalMaterial()
+				// );
+				// // wavidCube.position.set(0,200,100);
+				// wavidMesh.add( wavidCube );
+
+				// wavidBody = world.add({ 
+				// 	type:'box', // type of shape : sphere, box, cylinder 
+				// 	size:[50/20,50/20,50/20], // size of shape
+				// 	pos: wavidCube.position.toArray(), // start position in degree
+				// 	rot:[0,0,90], // start rotation in degree
+				// 	move:true, // dynamic or statique
+				// 	density: 1,
+				// 	friction: 0.2,
+				// 	restitution: 0.2,
+				// 	kinematic: true,
+				// 	belongsTo: 1, // The bits of the collision groups to which the shape belongs.
+				// 	collidesWith: 0xffffffff // The bits of the collision groups with which the shape collides.
+				// });
+
+				// wavidBody.connectMesh( wavidCube );
+
+				setup();
+			});
+
+			// -------------------------------------------------------
+
+			// children
+
+			_.each(['bobbin','edgar','h2dough','vince','poolygon'], function( name ) {
+
+				var mat = name == 'poolygon' ? 'Phong' : 'Toon';
+
+				var floatyMat = new THREE['Mesh'+mat+'Material']({
+				// var floatyMat = new THREE.MeshPhongMaterial({
+					map: textureLoader.load( 'models/' + name + '.png', setup ),
+					specular: 0x333333,
+					// shininess: 50
+					shininess: 20
+				});
+
+				jsonLoader.load( 'models/' + name + '.js', function( geometry ) {
+					var floaty = window[name] = new THREE.Mesh( geometry, floatyMat );
+					floaty.scale.setScalar( 15 );
+					scene.add( floaty );
+					floaties.push( floaty );
+
+					floaty.castShadow = true;
+
+					setup();
+				});
+
+			});
+
+			renderer.shadowMap.enabled = true;
+			renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+			dLight.castShadow = true;            // default false
+			dLight.shadow.mapSize.width = 2048;
+			dLight.shadow.mapSize.height = 2048;
+			dLight.shadow.camera.near = 0.5;    // default
+			dLight.shadow.camera.far = 1000      // default
+			dLight.shadow.camera.right = 1024;
+			dLight.shadow.camera.left = - 1024;
+			dLight.shadow.camera.top	= 1024;
+			dLight.shadow.camera.bottom = - 1024;
+			floor.receiveShadow = true;
+			ch = new THREE.CameraHelper( dLight.shadow.camera );
+			if (config.debug) {
+				scene.add( ch );
+			}
+
+			var gui = new dat.GUI();
+			gui.add( config, 'debug' ).onChange(function(debug){
+				if (debug) {
+					camera.position.set(-300,200,200);
+					scene.add( dlh, ah, ch );
+				} else {
+					scene.remove( dlh, ah, ch );
+				}
+				// dlh.visible = ah.visible = debug;
+			});
+
+			window.addEventListener( 'resize', resize, false );
+		}
+
+		function resize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		function loop() {
+
+			requestAnimationFrame( loop );
+
+			TWEEN.update();
+
+			var time = clock.elapsedTime;
+			
+			for (var i = 0; i < floaties.length; i++) {
+				floaties[i].position.y = Math.sin( time * 8 + i ) * 2.5;
+				floaties[i].rotation.z = - Math.sin( time * 8 + 2 + i ) * THREE.Math.degToRad(2.5);
+			}
+
+			var delta = clock.getDelta(); // seconds
+			var moveDistance = 200 * delta; // 200 pixels per second
+			var rotateAngle = Math.PI / 2 * 2 * delta;   // pi/2 radians (90 degrees) per second
+
+			// local transformations
+
+			// move forwards/backwards
+			if ( keyboard.pressed('W') || keyboard.pressed('up') ) {
+				// wavidGroup.translateZ( -moveDistance );
+				wavidDest.translateZ( -moveDistance );
+
+				var tween = new TWEEN.Tween( wavidGroup.position )
+									.to( wavidDest.position, 500 )
+									.easing( TWEEN.Easing.Cubic.Out )
+									.start();
+			}
+			if ( keyboard.pressed('S') || keyboard.pressed('down') ) {
+				// wavidGroup.translateZ( moveDistance );
+				wavidDest.translateZ( moveDistance );
+
+				var tween2 = new TWEEN.Tween( wavidGroup.position )
+									.to( wavidDest.position, 500 )
+									.easing( TWEEN.Easing.Cubic.Out )
+									.start();
+			}
+
+			// rotate left/right
+			if ( keyboard.pressed('A') || keyboard.pressed('left') ) {
+				wavidGroup.userData.rotDest += rotateAngle;
+			}
+			if ( keyboard.pressed('D')  || keyboard.pressed('right') ) {
+				wavidGroup.userData.rotDest += -rotateAngle;
+			}
+
+			THREE.VRController.update();
+			
+			for( c in THREE.VRController.controllers ) {
+				var controller = THREE.VRController.controllers[c];
+				if ( controller && controller.gamepadStyle == 'xbox' ) {
+					var axes = controller.getAxes(0);
+					if ( axes.value[1] ) {
+						// wavidGroup.translateZ( axes.value[1] * 3 );
+						wavidDest.translateZ( axes.value[1] * 3 );
+
+						var tween3 = new TWEEN.Tween( wavidGroup.position )
+											.to( wavidDest.position, 500 )
+											.easing( TWEEN.Easing.Cubic.Out )
+											.start();
+					}
+					if ( axes.value[0] ) {
+						wavidGroup.userData.rotDest += - axes.value[0] * 0.05;
+					}
+				}
+			}
+
+			if (wavidGroup.userData.rotDest !== wavidGroup.rotation.y) {
+				wavidGroup.rotation.y += (wavidGroup.userData.rotDest - wavidGroup.rotation.y) * 0.08;
+
+				if (Math.abs( wavidGroup.userData.rotDest - wavidGroup.rotation.y ) < 0.01) {
+					wavidGroup.rotation.y = wavidGroup.userData.rotDest;
+				}
+			}
+
+			if ( keyboard.pressed('Z') ) {
+				wavidGroup.position.set( 0, 4, 0 );
+				wavidGroup.rotation.set( 0, 0, 0 );
+			}
+
+			wavidDest.rotation.copy( wavidGroup.rotation );
+
+			if ( config.debug ) {
+
+				controls.update();
+			
+			} else {
+				
+				var relativeCameraOffset = new THREE.Vector3( 0, 80, 200 );
+
+				var cameraOffset = relativeCameraOffset.applyMatrix4( wavidGroup.matrixWorld );
+
+				camera.position.copy( cameraOffset );
+				camera.lookAt( wavidGroup.position );
+				
+				// camera.updateMatrix();
+				// camera.updateProjectionMatrix();
+			}
+
+			stats.update();
+
+			world.step();
+
+			wavidBody.setPosition( wavidGroup.position );
+			wavidBody.setRotation({ x: 0, y: THREE.Math.radToDeg( wavidGroup.rotation.y ), z: 0 });
+			
+			if ( world.checkContact('wavid', 'cube') ) {
+				wavidMesh.material.color.setHex( 0xcccccc );
+			} else {
+				wavidMesh.material.color.setHex( 0xffffff );
+			}
+
+			// if ( !bobbin.userData.found && world.checkContact('wavid', 'bobbin') ) {
+			// 	bobbin.userData.found = true;
+			// 	// display graphic
+			// }
+
+			// renderer.render( scene, camera );
+			effect.render( scene, camera );
+		}
+
+	</script>
+
+</body>
+</html>
