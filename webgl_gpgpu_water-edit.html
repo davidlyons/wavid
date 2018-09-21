@@ -117,7 +117,6 @@
 				scene.add( sun2 );
 
 				renderer = new THREE.WebGLRenderer();
-				renderer.setClearColor( 0x000000 );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				container.appendChild( renderer.domElement );
@@ -249,7 +248,7 @@
 
 				// heightmapVariable.material.vertexShader = heightmapShader.vertexShader;
 
-								// Mesh just for mouse raycasting
+				// Mesh just for mouse raycasting
 				var geometryRay = new THREE.PlaneBufferGeometry( BOUNDS, BOUNDS, 1, 1 );
 				meshRay = new THREE.Mesh(
 					geometryRay,
@@ -283,7 +282,7 @@
 					var mult = 0.025;
 					var r = 0;
 					for ( var i = 0; i < 15; i++ ) {
-						r += multR * simplex.noise3d( x * mult, y * mult, z * mult );
+						r += multR * simplex.noise( x * mult, y * mult );
 						multR *= 0.53 + 0.025 * i;
 						mult *= 1.25;
 					}
@@ -381,17 +380,17 @@
 				var uniforms = heightmapVariable.material.uniforms;
 				if ( mouseMoved ) {
 
-					this.raycaster.setFromCamera( mouseCoords, camera );
+					raycaster.setFromCamera( mouseCoords, camera );
 
-					var intersects = this.raycaster.intersectObject( meshRay );
+					var intersects = raycaster.intersectObject( meshRay );
 
 					if ( intersects.length > 0 ) {
-					    var point = intersects[ 0 ].point;
-					    uniforms.mousePos.value.set( point.x, point.z );
+						var point = intersects[ 0 ].point;
+						uniforms.mousePos.value.set( point.x, point.z );
 
 					}
 					else {
-					    uniforms.mousePos.value.set( 10000, 10000 );
+						uniforms.mousePos.value.set( 10000, 10000 );
 					}
 
 					mouseMoved = false;

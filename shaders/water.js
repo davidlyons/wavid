@@ -56,9 +56,9 @@ var waterShader = {
       'vec3 transformed = vec3( position.x, position.y, heightValue );',
       '//<begin_vertex>',
 
-      '#include <displacementmap_vertex>',
       '#include <morphtarget_vertex>',
       '#include <skinning_vertex>',
+      '#include <displacementmap_vertex>',
       '#include <project_vertex>',
       '#include <logdepthbuf_vertex>',
       '#include <clipping_planes_vertex>',
