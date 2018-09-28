@@ -27,15 +27,15 @@
 </head>
 <body>
 
-	<script src="https://cdn.rawgit.com/mrdoob/three.js/r96/build/three.js"></script>
-	<script src="https://cdn.rawgit.com/mrdoob/three.js/r96/examples/js/controls/OrbitControls.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.0-0/dat.gui.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/17.2.0/Tween.min.js"></script>
+	<script src="https://cdn.rawgit.com/mrdoob/three.js/r97/build/three.js"></script>
+	<script src="https://cdn.rawgit.com/mrdoob/three.js/r97/examples/js/controls/OrbitControls.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.2/dat.gui.min.js"></script>
+	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/17.2.0/Tween.min.js"></script> -->
 	<script src="https://cdn.rawgit.com/davidlyons/THREE.VRController/master/VRController.js"></script>
 
-	<!-- <script src="https://cdn.rawgit.com/mrdoob/three.js/r96/examples/js/Detector.js"></script> -->
-	<script src="https://cdn.rawgit.com/mrdoob/three.js/r96/examples/js/loaders/FBXLoader.js"></script>
-	<!-- <script src="https://cdn.rawgit.com/mrdoob/three.js/r96/examples/js/vr/WebVR.js"></script> -->
+	<!-- <script src="https://cdn.rawgit.com/mrdoob/three.js/r97/examples/js/Detector.js"></script> -->
+	<script src="https://cdn.rawgit.com/mrdoob/three.js/r97/examples/js/loaders/FBXLoader.js"></script>
+	<!-- <script src="https://cdn.rawgit.com/mrdoob/three.js/r97/examples/js/vr/WebVR.js"></script> -->
 
 	<script src="js/THREEx.KeyboardState.js"></script>
 	<script src="js/THREEx.FullScreen.js"></script>
@@ -46,6 +46,7 @@
 	<script src="shaders/heightmap.js"></script>
 	<script src="shaders/smooth.js"></script>
 	<script src="shaders/water.js"></script>
+	<script src="js/water.js"></script>
 
 	<!-- physics -->
 	<script src="js/oimo.min.js"></script>
@@ -79,11 +80,11 @@
 
 			// console.log('Loading complete!');
 
-			h2dough.position.set( 90, 0, -150 );
-			poolygon.position.set( 180, 0, -150 );
-			vince.position.set( -180, 0, -150 );
-			edgar.position.set( -90, 0, -150 );
-			bobbin.position.set( 0, 0, -150 );
+			h2dough.position.set( .9, 0, -1.5 );
+			poolygon.position.set( 1.8, 0, -1.5 );
+			vince.position.set( -1.8, 0, -1.5 );
+			edgar.position.set( -.9, 0, -1.5 );
+			bobbin.position.set( 0, 0, -1.5 );
 
 			var loading = document.getElementById('loading')
 			document.body.removeChild( loading );
@@ -98,14 +99,18 @@
 		scene.background = new THREE.Color( 0xB6E6FF );
 		scene.fog = new THREE.FogExp2( scene.background, 0.0003 );
 
-		var camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 20000 );
+		var camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 10000 );
 		scene.add( camera );
-		camera.position.set( -350, 250, 250 );
+		camera.position.set( -4.5, 3, 3.5 );
 		camera.lookAt( scene.position );
 
 		var renderer = new THREE.WebGLRenderer({ antialias: true });
+		renderer.setPixelRatio( window.devicePixelRatio );
 		renderer.setSize( window.innerWidth, window.innerHeight );
 		var container = document.getElementById('container');
+
+		// renderer.vr.enabled = true;
+		// document.body.appendChild( WEBVR.createButton( renderer ) );
 
 		// m key for fullscreen
 		THREEx.FullScreen.bindKey({
@@ -115,6 +120,7 @@
 		var controls = new THREE.OrbitControls( camera, renderer.domElement );
 		controls.enableKeys = false;
 		controls.enabled = !config.followCam;
+		// controls.enabled = false;
 
 		var textureLoader = new THREE.TextureLoader();
 		var jsonLoader = new THREE.JSONLoader();
@@ -139,7 +145,7 @@
 
 		var wavidGroup = new THREE.Group();
 
-		wavidGroup.position.set( 0, 4, 150 );
+		wavidGroup.position.set( 0, .04, 1.5 );
 		scene.add( wavidGroup );
 
 		var wavidDest = new THREE.Group();
@@ -147,7 +153,7 @@
 		scene.add( wavidDest );
 
 		var wavidDestMesh = new THREE.Mesh(
-			new THREE.BoxBufferGeometry( 20, 20, 20 ),
+			new THREE.BoxBufferGeometry( .2, .2, .2 ),
 			new THREE.MeshPhongMaterial({
 				color: 0xff0000,
 				transparent: true,
@@ -170,13 +176,13 @@
 		scene.add( aLight );
 
 		var dLight = window.dLight = new THREE.DirectionalLight( 0xcccccc, 0.7 );
-		dLight.position.set( -80, 150, 80 ).multiplyScalar(3);
+		dLight.position.set( -.8, 1.5, .8 ).multiplyScalar( 3 );
 		scene.add( dLight );
 
-		var dLightHelper = new THREE.DirectionalLightHelper( dLight, 30 );
+		var dLightHelper = new THREE.DirectionalLightHelper( dLight, .3 );
 		// scene.add( dLightHelper );
 
-		var axesHelper = new THREE.AxesHelper(30);
+		var axesHelper = new THREE.AxesHelper( .3 );
 		// scene.add( axesHelper );
 
 		if ( config.helpers ) {
@@ -203,7 +209,7 @@
 			timestep: 1 / 60,
 			iterations: 8,
 			broadphase: 2, // 1 brute force, 2 sweep and prune, 3 volume tree
-			worldscale: 100, // scale full world
+			worldscale: 1, // scale full world
 			random: true, // randomize sample
 			info: false, // calculate statistic or not
 			gravity: [ 0, -9.8, 0 ]
@@ -227,21 +233,30 @@
 			opacity: 0.8
 		});
 
-		var fSize = 500;
+		var fSize = 5;
 
 		var floorGeo = new THREE.PlaneGeometry( fSize, fSize, 1, 1 );
 		var floor = new THREE.Mesh( floorGeo, floorMat );
-		floor.position.y = -0.5;
 		floor.rotation.x = - Math.PI / 2;
-		scene.add( floor );
+		// scene.add( floor );
 
 		var ground = world.add({
 			type: 'box',
-			size: [ fSize, 10, fSize ],
-			pos: [ 0, -5.5, 0 ],
+			size: [ fSize, 1, fSize ],
+			pos: [ 0, -.6, 0 ],
 			density: 1,
 			name: 'ground'
 		});
+
+		//
+
+		var water = new Water( 256, 500, 0x00BFF3, false );
+		scene.add( water );
+
+		water.heightmapVariable.material.uniforms.wakeSize.value = 5.0;
+
+		// because setting the water BOUNDS to 5 is buggy, so leave it at 500
+		water.scale.setScalar( 0.01 );
 
 		// ---------------------------------
 		// ---------------------------------
@@ -249,7 +264,7 @@
 		// walls of the pool
 
 		var wLength = fSize;
-		var wHeight = 20;
+		var wHeight = .2;
 
 		var wallMat = new THREE.MeshPhongMaterial({ color: 0xcccccc });
 
@@ -337,62 +352,68 @@
 		// ---------------------------------
 		// ---------------------------------
 
-		// collider cube
+		// soccer ball
 
-		var cSize = 22;
+		var cSize = .2;
 
-		// visual for cubeBody
-		var sphere = new THREE.Mesh(
-			// new THREE.BoxBufferGeometry(cSize,cSize,cSize),
-			new THREE.SphereBufferGeometry(cSize),
-			new THREE.MeshPhongMaterial({
-				color: 0xaaaaaa,
-				wireframe: true
-			})
-		);
+		// visual for sphereBody
+		// var sphere = new THREE.Mesh(
+		// 	// new THREE.BoxBufferGeometry(cSize,cSize,cSize),
+		// 	new THREE.SphereBufferGeometry( cSize ),
+		// 	new THREE.MeshPhongMaterial({
+		// 		color: 0xaaaaaa,
+		// 		wireframe: true
+		// 	})
+		// );
 
-		// sphere.castShadow = true;
-		sphere.position.set( 0, 60, 0 );
-		scene.add( sphere );
+		// sphere.position.set( 0, .6, 0 );
+		// scene.add( sphere );
+
+		var ballGroup = new THREE.Group();
+		ballGroup.position.set( 0, 0, 0 );
+		scene.add( ballGroup );
+		// ballGroup.add( new THREE.AxesHelper(.3) );
+
+		var sphereBody;
 
 		fbxLoader.load('models/soccerball.fbx', function(fbx){
 			ball = fbx.children[0];
+			ball.position.set( 0, .6, 0 );
 			ball.castShadow = true;
-			ball.scale.setScalar( 19 );
-			sphere.add( ball );
+			ballGroup.add( ball );
 
 			ball.material = new THREE.MeshPhongMaterial({
 				vertexColors: THREE.VertexColors,
 				color: 0xffffff
 			});
 
+			// soccer ball physics body
+			sphereBody = world.add({
+				type: 'sphere', // type of shape : sphere, box, cylinder
+				size: [cSize], // size of shape
+				pos: ball.position.toArray(), // start position in degree
+				rot: [0,0,0], // start rotation in degree
+				move: true, // dynamic or statique
+				density: 1,
+				friction: 0.2,
+				restitution: 0.2,
+				belongsTo: 1, // The bits of the collision groups to which the shape belongs.
+				collidesWith: 0xffffffff, // The bits of the collision groups with which the shape collides.
+				name: 'ball'
+			});
+
+			// sphereBody.position.y = 1;
+
+			// auto update position and rotation
+			sphereBody.connectMesh( ball );
+
 		});
-
-		// physics body
-		var sphereBody = world.add({
-			type: 'sphere', // type of shape : sphere, box, cylinder
-			size: [cSize], // size of shape
-			pos: sphere.position.toArray(), // start position in degree
-			rot: [0,0,0], // start rotation in degree
-			move: true, // dynamic or statique
-			density: 1,
-			friction: 0.2,
-			restitution: 0.2,
-			belongsTo: 1, // The bits of the collision groups to which the shape belongs.
-			collidesWith: 0xffffffff, // The bits of the collision groups with which the shape collides.
-			name: 'ball'
-		});
-
-		 // auto update position and rotation
-		sphereBody.connectMesh( sphere );
-
-		// sphereBody.position.y = 1;
 
 		// ---------------------------------
 
 		// wavid collider
 
-		var wSize = 50;
+		var wSize = .5;
 
 		// visual for wavidBody
 		var wavidCube = new THREE.Mesh(
@@ -403,8 +424,12 @@
 			})
 		);
 
-		wavidCube.position.set( 0, 100, 100 );
-		scene.add( wavidCube );
+		wavidCube.position.set( 0, 1, 1 );
+		// wavidCube.visible = false;
+
+		if ( config.helpers ) {
+			scene.add( wavidCube );
+		}
 
 		// physics body
 		wavidBody = world.add({ 
@@ -429,8 +454,8 @@
 
 		// for clamping floaty position to perimeter
 		var limit = fSize / 2  - wSize / 2;
-		var poolMin = new THREE.Vector3( - limit, -8, - limit );
-		var poolMax = new THREE.Vector3( limit, 8, limit );
+		var poolMin = new THREE.Vector3( - limit, -1, - limit );
+		var poolMax = new THREE.Vector3( limit, 1, limit );
 
 		// ----------------------------------------------
 
@@ -446,7 +471,7 @@
 			wavidMesh = new THREE.Mesh( geometry, wavidMat );
 			wavidMesh.name = 'wavid';
 			wavidGroup.add( wavidMesh );
-			wavidMesh.scale.setScalar( 20 );
+			wavidMesh.scale.setScalar( .2 );
 			wavidMesh.rotation.y = Math.PI;
 			floaties.push( wavidMesh );
 
@@ -476,7 +501,7 @@
 			jsonLoader.load( 'models/' + name + '.js', function( geometry ) {
 				var floaty = window[name] = new THREE.Mesh( geometry, floatyMat );
 				floaty.name = name;
-				floaty.scale.setScalar( 15 );
+				floaty.scale.setScalar( .15 );
 				scene.add( floaty );
 				floaties.push( floaty );
 
@@ -492,11 +517,11 @@
 		dLight.shadow.mapSize.width = 2048;
 		dLight.shadow.mapSize.height = 2048;
 		dLight.shadow.camera.near = 0.5;    // default
-		dLight.shadow.camera.far = 1000      // default
-		dLight.shadow.camera.right = 1024;
-		dLight.shadow.camera.left = - 1024;
-		dLight.shadow.camera.top	= 1024;
-		dLight.shadow.camera.bottom = - 1024;
+		dLight.shadow.camera.far = 20;
+		// dLight.shadow.camera.right = 64;
+		// dLight.shadow.camera.left = - 64;
+		// dLight.shadow.camera.top	= 64;
+		// dLight.shadow.camera.bottom = - 64;
 		floor.receiveShadow = true;
 		var camHelper = new THREE.CameraHelper( dLight.shadow.camera );
 
@@ -510,7 +535,7 @@
 
 		gui.add( config, 'helpers' ).onChange(function(showHelpers){
 			var action =  showHelpers ? 'add' : 'remove';
-			scene[action]( dLightHelper, axesHelper, camHelper );
+			scene[action]( dLightHelper, axesHelper, camHelper, wavidCube );
 			wavidDest[action]( wavidDestMesh );
 		});
 
@@ -518,7 +543,7 @@
 			controls.enabled = !follow;
 
 			if ( !follow ) {
-				camera.position.set( -300, 200, 200 );
+				camera.position.set( -4.5, 3, 3.5 );
 			}
 		});
 
@@ -531,23 +556,25 @@
 
 		function loop() {
 
-			TWEEN.update();
-
+			var delta = clock.getDelta();
 			var time = clock.elapsedTime;
-			var delta = clock.getDelta(); // seconds
+
+			// TWEEN.update();
 
 			// floaty water bob up and down animation
 
 			for ( var i = 0; i < floaties.length; i++ ) {
-				floaties[i].position.y = Math.sin( time * 8 + i ) * 2.5;
+				floaties[i].position.y = Math.sin( time * 8 + i ) * .025;
 				floaties[i].rotation.z = - Math.sin( time * 8 + 2 + i ) * THREE.Math.degToRad( 2.5 );
 			}
+
+			ballGroup.position.y = Math.sin( time * 8 ) * .025
 
 			// -------------------------------------------------------------
 
 			// move and rotate with keyboard
 
-			var moveDistance = 200 * delta; // move 200 units per second
+			var moveDistance = 2 * delta; // move 2 units per second
 			var rotateAngle = THREE.Math.degToRad( 180 ) * delta; // rotate 180 degrees per second
 
 			// move forwards
@@ -595,12 +622,20 @@
 			lerp( wavidGroup.position, 'z', wavidDest.position.z );
 			lerp( wavidGroup.rotation, 'y', wavidDest.rotation.y );
 
+			water.heightmapVariable.material.uniforms.wakePos1.value.set(
+				wavidGroup.position.x,
+				wavidGroup.position.z
+			).multiplyScalar( 100 );
+
+			water.update( time );
+
 			// reset to center
 			if ( keyboard.pressed('Z') ) {
-				wavidGroup.position.set( 0, 4, 0 );
+				wavidGroup.position.set( 0, .04, 1.5 );
 				wavidGroup.rotation.set( 0, 0, 0 );
 				wavidDest.position.copy( wavidGroup.position );
 				wavidDest.rotation.copy( wavidGroup.rotation );
+				sphereBody.resetPosition( 0, .6, 0 );
 			}
 
 			// -------------------------------------------------------------
@@ -611,7 +646,7 @@
 			}
 
 			if ( config.followCam ) {
-				var relativeCameraOffset = new THREE.Vector3( 0, 80, 200 );
+				var relativeCameraOffset = new THREE.Vector3( 0, .8, 2 );
 				var cameraOffset = relativeCameraOffset.applyMatrix4( wavidGroup.matrixWorld );
 				camera.position.copy( cameraOffset );
 				camera.lookAt( wavidGroup.position );
@@ -631,7 +666,7 @@
 
 			// reset ball if it falls
 			if ( sphereBody.position.y < -2 ) {
-				sphereBody.resetPosition( 0, 50, 0 );
+				sphereBody.resetPosition( 0, .6, 0 );
 			}
 
 			if ( world.checkContact('wavid', 'ball') ) {

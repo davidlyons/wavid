@@ -37,13 +37,12 @@
 			Press mouse button to orbit around. 'W' key toggles wireframe.
 		</div>
 
-		<script src="js/three.js"></script>
-		<script src="js/Detector.js"></script>
-		<script src="js/stats.min.js"></script>
-		<script src="js/dat.gui.min.js"></script>
-		<script src="js/OrbitControls.js"></script>
-		<script src="js/SimplexNoise.js"></script>
+		<script src="https://cdn.rawgit.com/mrdoob/three.js/r96/build/three.js"></script>
+		<script src="https://cdn.rawgit.com/mrdoob/three.js/r96/examples/js/Detector.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.2/dat.gui.min.js"></script>
+		<script src="https://cdn.rawgit.com/mrdoob/three.js/r96/examples/js/controls/OrbitControls.js"></script>
 
+		<script src="js/SimplexNoise.js"></script>
 		<script src="js/GPUComputationRenderer.js"></script>
 
 
@@ -214,7 +213,7 @@
 			var BOUNDS = 512;
 			var BOUNDS_HALF = BOUNDS * 0.5;
 
-			var container, stats;
+			var container;
 			var camera, scene, renderer, controls;
 			var mouseMoved = false;
 			var mouseCoords = new THREE.Vector2();
@@ -276,9 +275,6 @@
 
 				controls = new THREE.OrbitControls( camera, renderer.domElement );
 
-
-				stats = new Stats();
-				container.appendChild( stats.dom );
 
 				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 				document.addEventListener( 'touchstart', onDocumentTouchStart, false );
@@ -521,7 +517,6 @@
 				requestAnimationFrame( animate );
 
 				render();
-				stats.update();
 
 			}
 

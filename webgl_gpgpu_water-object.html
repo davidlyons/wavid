@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - gpgpu - water</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+				font-family: Monospace;
+				font-size: 13px;
+				text-align: center;
+			}
+
+			a {
+				color:#0078ff;
+			}
+
+			#info {
+				color: #ffffff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+			}
+
+		</style>
+	</head>
+	<body>
+
+		<div id="info">
+			webgl gpgpu water<br>
+			Press mouse button to orbit around.
+		</div>
+
+		<script src="https://cdn.rawgit.com/mrdoob/three.js/r96/build/three.js"></script>
+		<script src="https://cdn.rawgit.com/mrdoob/three.js/r96/examples/js/Detector.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.2/dat.gui.min.js"></script>
+		<script src="https://cdn.rawgit.com/mrdoob/three.js/r96/examples/js/controls/OrbitControls.js"></script>
+
+		<script src="js/SimplexNoise.js"></script>
+		<script src="js/GPUComputationRenderer.js"></script>
+		<script src="shaders/heightmap.js"></script>
+		<script src="shaders/smooth.js"></script>
+		<script src="shaders/water.js"></script>
+		<script src="js/water.js"></script>
+
+		<script>
+
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+			var clock = new THREE.Clock();
+
+			var waterSizes = [];
+			for ( var i = 4; i < 10; i++ ) {
+				var j = Math.pow( 2, i );
+				waterSizes.push( j );
+			}
+
+			var container = document.createElement( 'div' );
+			document.body.appendChild( container );
+
+			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 3000 );
+			camera.position.set( 0, 200, 350 );
+
+			var scene = new THREE.Scene();
+
+			var dLight1 = new THREE.DirectionalLight( 0xFFFFFF, 1.0 );
+			dLight1.position.set( 300, 400, 175 );
+			scene.add( dLight1 );
+
+			var dLight2 = new THREE.DirectionalLight( 0x40A040, 0.6 );
+			dLight2.position.set( -100, 350, -200 );
+			scene.add( dLight2 );
+
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			container.appendChild( renderer.domElement );
+
+			var controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+			// width
+			var hash = document.location.hash.substr( 1 );
+			if ( hash ) hash = parseInt( hash, 0 );
+
+			var water = new Water( null, null, null, true );
+			scene.add( water );
+
+			// ------------------------------------------------------------
+
+			var gui = new dat.GUI();
+
+			var effectController = {
+				waterSize: water.WIDTH
+			};
+
+			gui.add( water.heightmapVariable.material.uniforms.wakeSize, 'value', 1.0, 100.0, 1.0 ).name('wakeSize');
+			gui.add( water.heightmapVariable.material.uniforms.viscosityConstant, 'value', 0.0, 0.1, 0.001 ).name('viscosity');
+			gui.add( water.mesh.material, 'wireframe' );
+			gui.add( water, 'wakeMove' );
+
+			gui.add( effectController, 'waterSize', waterSizes ).onChange(function(val){
+				location.hash = val;
+				location.reload();
+				return false;
+			});
+
+			var buttonSmooth = {
+				smoothWater: function() {
+					water.smooth();
+				}
+			};
+			gui.add( buttonSmooth, 'smoothWater' );
+
+			// ------------------------------------------------------------
+
+			//
+
+			window.addEventListener( 'resize', resize, false );
+			function resize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+
+			loop();
+
+			function loop() {
+
+				requestAnimationFrame( loop );
+
+				var delta = clock.getDelta();
+				var time = clock.elapsedTime;
+
+				water.update( time );
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>

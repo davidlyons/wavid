@@ -9,12 +9,21 @@ var heightmapShader = {
   fragmentShader: [
     '#include <common>',
 
-    'uniform vec2 mousePos;',
-    'uniform float mouseSize;',
+    'uniform vec2 wakePos1;',
+    'uniform vec2 wakePos2;',
+    'uniform vec2 wakePos3;',
+    'uniform vec2 wakePos4;',
+
+    'uniform float wakeSize;',
     'uniform float viscosityConstant;',
 
     '#define deltaTime ( 1.0 / 60.0 )',
     '#define GRAVITY_CONSTANT ( resolution.x * deltaTime * 3.0 )',
+
+    'float phase( vec2 pos, vec2 uv ){',
+      'float wakePhase = clamp( length( ( uv - vec2( 0.5 ) ) * BOUNDS - vec2( pos.x, - pos.y ) ) * PI / wakeSize, 0.0, PI );',
+      'return cos( wakePhase ) + 1.0;',
+    '}',
 
     'void main() {',
 
@@ -45,8 +54,10 @@ var heightmapShader = {
       'heightmapValue.x += sump * viscosityConstant;',
 
       '// Mouse influence',
-      'float mousePhase = clamp( length( ( uv - vec2( 0.5 ) ) * BOUNDS - vec2( mousePos.x, - mousePos.y ) ) * PI / mouseSize, 0.0, PI );',
-      'heightmapValue.x += cos( mousePhase ) + 1.0;',
+      'heightmapValue.x += phase( wakePos1, uv );',
+      'heightmapValue.x += phase( wakePos2, uv );',
+      'heightmapValue.x += phase( wakePos3, uv );',
+      'heightmapValue.x += phase( wakePos4, uv );',
 
       'gl_FragColor = heightmapValue;',
 
