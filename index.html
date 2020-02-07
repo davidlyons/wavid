@@ -280,10 +280,8 @@
 		var wallMat = new THREE.MeshPhongMaterial({ color: 0xcccccc });
 
 		// visual for wallBackBody
-		var wallBack = new THREE.Mesh(
-			new THREE.BoxBufferGeometry( wLength, wHeight, wHeight ),
-			wallMat
-		);
+		var wallBackGeo = new THREE.BoxBufferGeometry( wLength + wHeight, wHeight, wHeight );
+		var wallBack = new THREE.Mesh( wallBackGeo, wallMat );
 
 		wallBack.position.set( 0, wHeight / 2, - wLength / 2 );
 		scene.add( wallBack );
@@ -320,10 +318,9 @@
 
 		// ---------------------------------
 
-		var wallRight = new THREE.Mesh(
-			new THREE.BoxBufferGeometry( wHeight, wHeight, wLength ),
-			wallMat
-		);
+		var wallRightGeo = new THREE.BoxBufferGeometry( wHeight, wHeight, wLength - wHeight );
+		var wallRight = new THREE.Mesh( wallRightGeo, wallMat );
+
 		wallRight.position.set( wLength / 2, wHeight / 2, 0 );
 		scene.add( wallRight );
 
@@ -341,10 +338,7 @@
 
 		// ---------------------------------
 
-		var wallLeft = new THREE.Mesh(
-			new THREE.BoxBufferGeometry( wHeight, wHeight, wLength ),
-			wallMat
-		);
+		var wallLeft = wallRight.clone();
 		wallLeft.position.set( - wLength / 2, wHeight / 2, 0 );
 		scene.add( wallLeft );
 
