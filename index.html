@@ -1,6 +1,18 @@
 <!doctype html>
 <html lang="en">
 <head>
+	<!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-113315813-1"></script>
+	<script>
+		if (document.location.hostname != 'localhost') {
+			window.dataLayer = window.dataLayer || [];
+			function gtag(){dataLayer.push(arguments);}
+			gtag('js', new Date());
+
+			gtag('config', 'UA-113315813-1');
+		}
+	</script>
+
 	<title>Wavid</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
@@ -39,15 +51,12 @@
 		Unity game jam download on <a href="https://davidlyons.itch.io/wavid">itch.io</a>
 	</div>
 
-	<script src="https://cdn.rawgit.com/mrdoob/three.js/r97/build/three.js"></script>
-	<script src="https://cdn.rawgit.com/mrdoob/three.js/r97/examples/js/controls/OrbitControls.js"></script>
+	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r97/build/three.js"></script>
+	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r97/examples/js/controls/OrbitControls.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.2/dat.gui.min.js"></script>
-	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/17.2.0/Tween.min.js"></script> -->
-	<script src="https://cdn.rawgit.com/davidlyons/THREE.VRController/master/VRController.js"></script>
+	<script src="https://cdn.jsdelivr.net/gh/davidlyons/THREE.VRController@master/VRController.js"></script>
 
-	<!-- <script src="https://cdn.rawgit.com/mrdoob/three.js/r97/examples/js/Detector.js"></script> -->
-	<script src="https://cdn.rawgit.com/mrdoob/three.js/r97/examples/js/loaders/FBXLoader.js"></script>
-	<!-- <script src="https://cdn.rawgit.com/mrdoob/three.js/r97/examples/js/vr/WebVR.js"></script> -->
+	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r97/examples/js/loaders/FBXLoader.js"></script>
 
 	<script src="js/THREEx.KeyboardState.js"></script>
 	<script src="js/THREEx.FullScreen.js"></script>
@@ -120,9 +129,6 @@
 		renderer.setPixelRatio( window.devicePixelRatio );
 		renderer.setSize( window.innerWidth, window.innerHeight );
 		var container = document.getElementById('container');
-
-		// renderer.vr.enabled = true;
-		// document.body.appendChild( WEBVR.createButton( renderer ) );
 
 		// m key for fullscreen
 		THREEx.FullScreen.bindKey({
@@ -565,8 +571,6 @@
 
 			var delta = clock.getDelta();
 			var time = clock.elapsedTime;
-
-			// TWEEN.update();
 
 			// floaty water bob up and down animation
 
