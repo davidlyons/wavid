@@ -563,7 +563,17 @@
       // gui controls
 
       var gui = new GUI()
-      gui.close()
+
+      // show gui on local, hide on prod
+      const local = ['localhost', '192', '127']
+      const isLocal = local.some((item) => location.hostname.includes(item))
+      if (!isLocal) gui.hide()
+
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'h') {
+          gui._hidden ? gui.show() : gui.hide()
+        }
+      })
 
       gui.add(config, 'helpers').onChange(function (showHelpers) {
         var action = showHelpers ? 'add' : 'remove'
