@@ -50,25 +50,8 @@
 		Use WASD, arrow keys or gamepad to swim.<br>
 	</div>
 
-	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r98/build/three.js"></script>
-	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r98/examples/js/controls/OrbitControls.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/lil-gui@0.21.0"></script>
-
-	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r98/examples/js/loaders/GLTFLoader.js"></script>
-
 	<script src="js/THREEx.KeyboardState.js"></script>
 	<script src="js/THREEx.FullScreen.js"></script>
-
-	<!-- water dependencies -->
-	<script src="js/SimplexNoise.js"></script>
-	<script src="js/GPUComputationRenderer.js"></script>
-	<script src="shaders/heightmap.js"></script>
-	<script src="shaders/smooth.js"></script>
-	<script src="shaders/water.js"></script>
-	<script src="js/water.js"></script>
-
-	<!-- physics -->
-	<script src="js/oimo.min.js"></script>
 
 	<div id="container"></div>
 
@@ -76,15 +59,37 @@
 		<div class="table-cell">Loading...</div>
 	</div>
 
-	<script>
+	<script type="importmap">
+		{
+			"imports": {
+				"three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+				"three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+				"three/tsl": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.tsl.js",
+				"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/",
+				"lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.21.0/+esm"
+			}
+		}
+	</script>
+
+	<script type="module">
+		import * as THREE from 'three'
+		import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+		import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+		import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
+		import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+		import { GUI } from 'lil-gui'
+
+		import { OIMO } from "./js/oimo.module.js";
+		import { Water } from "./js/water-webgpu.js";
 
 		var keyboard = new THREEx.KeyboardState();
-		var clock = new THREE.Clock();
+		var timer = new THREE.Timer();
+		timer.connect(document);
 
 		var wavidMesh;
-		var bobbin, edgar, h2dough, poolygon, vince;
 
-		var floaties = [];
+		var floaties = {};
+		let floatiesArr;
 
 		var config = {
 			helpers: false,
@@ -99,11 +104,13 @@
 
 			// console.log('Loading complete!');
 
-			h2dough.position.set( .9, 0, -1.5 );
-			poolygon.position.set( 1.8, 0, -1.5 );
-			vince.position.set( -1.8, 0, -1.5 );
-			edgar.position.set( -.9, 0, -1.5 );
-			bobbin.position.set( 0, 0, -1.5 );
+			floatiesArr = Object.values(floaties);
+
+			floaties.h2dough.position.set( .9, 0, -1.5 );
+			floaties.poolygon.position.set( 1.8, 0, -1.5 );
+			floaties.vince.position.set( -1.8, 0, -1.5 );
+			floaties.edgar.position.set( -.9, 0, -1.5 );
+			floaties.bobbin.position.set( 0, 0, -1.5 );
 
 			var loading = document.getElementById('loading')
 			document.body.removeChild( loading );
@@ -123,7 +130,7 @@
 		camera.position.set( -4.5, 3, 3.5 );
 		camera.lookAt( scene.position );
 
-		var renderer = new THREE.WebGLRenderer({ antialias: true });
+		var renderer = new THREE.WebGPURenderer({ antialias: true });
 		renderer.setPixelRatio( window.devicePixelRatio );
 		renderer.setSize( window.innerWidth, window.innerHeight );
 		var container = document.getElementById('container');
@@ -133,30 +140,25 @@
 			charCode : 'm'.charCodeAt( 0 )
 		});
 
-		var controls = new THREE.OrbitControls( camera, renderer.domElement );
+		var controls = new OrbitControls( camera, renderer.domElement );
 		controls.enableKeys = false;
 		controls.enabled = !config.followCam;
 		// controls.enabled = false;
 
 		var textureLoader = new THREE.TextureLoader();
-		var gltfLoader = new THREE.GLTFLoader();
+		const hdrLoader = new HDRLoader().setPath( './images/' );
+		var glbLoader = new GLTFLoader().setPath('models/');
 
 		// ----------------------------------------------------------------
 
-		// skybox
+		const [ env ] = await Promise.all( [ hdrLoader.loadAsync( 'blouberg_sunrise_2_1k.hdr' ) ] );
+		env.mapping = THREE.EquirectangularReflectionMapping;
+		scene.environment = env;
+		scene.background = env;
+		scene.backgroundBlurriness = 0.3;
+		scene.environmentIntensity = 1.25;
 
-		// todo
-
-		// var skyBoxGeometry = new THREE.BoxGeometry( 10000, 10000, 10000 );
-		// var skyBoxMaterial = new THREE.MeshBasicMaterial({
-		// 	color: 0x9999ff,
-		// 	side: THREE.BackSide,
-		// 	wireframe: true
-		// });
-		// var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
-		// scene.add( skyBox );
-
-		// -----------------------------------------------------------------
+		// ----------------------------------------------------------------
 
 		var wavidGroup = new THREE.Group();
 
@@ -168,7 +170,7 @@
 		scene.add( wavidDest );
 
 		var wavidDestMesh = new THREE.Mesh(
-			new THREE.BoxBufferGeometry( .2, .2, .2 ),
+			new THREE.BoxGeometry( .2, .2, .2 ),
 			new THREE.MeshPhongMaterial({
 				color: 0xff0000,
 				transparent: true,
@@ -187,10 +189,10 @@
 
 		// lights
 
-		var aLight = new THREE.AmbientLight( 0x777777 );
+		var aLight = new THREE.AmbientLight( 0x999999 );
 		scene.add( aLight );
 
-		var dLight = window.dLight = new THREE.DirectionalLight( 0xcccccc, 0.7 );
+		var dLight = window.dLight = new THREE.DirectionalLight( 0xffffff, 1.4 );
 		dLight.position.set( -.8, 1.5, .8 ).multiplyScalar( 3 );
 		scene.add( dLight );
 
@@ -218,7 +220,6 @@
 
 		// oimo physics
 
-		// todo:
 		// http://lo-th.github.io/Oimo.js/#kinematic
 
 		var world = new OIMO.World({
@@ -234,27 +235,8 @@
 		// ----------------------------------------------------------------
 
 		// flat static blue water plane
-		// todo: replace this with gpgpu water
-
-		var checkers = textureLoader.load( 'images/checkerboard.jpg' );
-		checkers.wrapS = checkers.wrapT = THREE.RepeatWrapping; 
-		checkers.repeat.set( 10, 10 );
-
-		// needs to be phong to receive shadow
-		var floorMat = new THREE.MeshPhongMaterial({
-			// map: checkers,
-			color: 0x00BFF3,
-			side: THREE.DoubleSide,
-			transparent: true,
-			opacity: 0.8
-		});
 
 		var fSize = 5;
-
-		var floorGeo = new THREE.PlaneGeometry( fSize, fSize, 1, 1 );
-		var floor = new THREE.Mesh( floorGeo, floorMat );
-		floor.rotation.x = - Math.PI / 2;
-		// scene.add( floor );
 
 		var ground = world.add({
 			type: 'box',
@@ -264,15 +246,12 @@
 			name: 'ground'
 		});
 
-		//
+		// --------------------------------
 
-		var water = new Water( 256, 500, 0x00BFF3, false );
+		// Water
+		const water = new Water( renderer );
 		scene.add( water );
 
-		water.heightmapVariable.material.uniforms.wakeSize.value = 5.0;
-
-		// because setting the water BOUNDS to 5 is buggy, so leave it at 500
-		water.scale.setScalar( 0.01 );
 
 		// ---------------------------------
 		// ---------------------------------
@@ -282,10 +261,13 @@
 		var wLength = fSize;
 		var wHeight = .2;
 
+		var wSegements = 2;
+		var wRadius = 0.02;
+
 		var wallMat = new THREE.MeshPhongMaterial({ color: 0xcccccc });
 
 		// visual for wallBackBody
-		var wallBackGeo = new THREE.BoxBufferGeometry( wLength + wHeight, wHeight, wHeight );
+		var wallBackGeo = new RoundedBoxGeometry( wLength + wHeight, wHeight, wHeight, wSegements, wRadius );
 		var wallBack = new THREE.Mesh( wallBackGeo, wallMat );
 
 		wallBack.position.set( 0, wHeight / 2, - wLength / 2 );
@@ -323,7 +305,7 @@
 
 		// ---------------------------------
 
-		var wallRightGeo = new THREE.BoxBufferGeometry( wHeight, wHeight, wLength - wHeight );
+		var wallRightGeo = new RoundedBoxGeometry( wHeight, wHeight, wLength - wHeight, wSegements, wRadius );
 		var wallRight = new THREE.Mesh( wallRightGeo, wallMat );
 
 		wallRight.position.set( wLength / 2, wHeight / 2, 0 );
@@ -386,14 +368,14 @@
 
 		var sphereBody;
 
-		gltfLoader.load('models/soccerball.glb', function(gltf){
-			ball = gltf.scene.children[0];
+		glbLoader.load('soccerball.glb', function(gltf){
+			const ball = gltf.scene.children[0];
 			ball.position.set( 0, .6, 0 );
 			ball.castShadow = true;
 			ballGroup.add( ball );
 
 			ball.material = new THREE.MeshPhongMaterial({
-				vertexColors: THREE.VertexColors,
+				vertexColors: true,
 				color: 0xffffff
 			});
 
@@ -427,7 +409,7 @@
 
 		// visual for wavidBody
 		var wavidCube = new THREE.Mesh(
-			new THREE.BoxBufferGeometry(wSize,wSize,wSize),
+			new THREE.BoxGeometry(wSize,wSize,wSize),
 			new THREE.MeshBasicMaterial({
 				color: 0xff0000,
 				wireframe: true
@@ -442,7 +424,7 @@
 		}
 
 		// physics body
-		wavidBody = world.add({ 
+		const wavidBody = world.add({ 
 			type: 'box', // type of shape : sphere, box, cylinder 
 			size: [wSize,wSize,wSize], // size of shape
 			pos: wavidCube.position.toArray(), // start position in degree
@@ -474,20 +456,23 @@
 		const wavidColor = textureLoader.load( 'models/wavid.png' );
 		wavidColor.flipY = false;
 
+		const gradientTexture = textureLoader.load('images/gradients/3.jpg')
+		gradientTexture.minFilter = THREE.NearestFilter
+		gradientTexture.magFilter = THREE.NearestFilter
+
 		var wavidMat = new THREE.MeshToonMaterial({
 			map: wavidColor,
-			specular: 0x333333,
-			shininess: 20
+			gradientMap: gradientTexture
 		});
 
-		gltfLoader.load( 'models/wavid.glb', function(gltf) {
+		glbLoader.load( 'wavid.glb', function(gltf) {
 			wavidMesh = gltf.scene.children[0]
 			wavidMesh.material = wavidMat;
 			wavidMesh.name = 'wavid';
 			wavidGroup.add( wavidMesh );
 			wavidMesh.scale.setScalar( .2 );
 			wavidMesh.rotation.y = Math.PI;
-			floaties.push( wavidMesh );
+			floaties.wavid = wavidMesh;
 
 			// pivot around center?
 			// wavidMesh.position.z = 60;
@@ -507,23 +492,23 @@
 			var floatyTexture = textureLoader.load( 'models/' + name + '.png' )
 			floatyTexture.flipY = false;
 
-			var mat = name == 'poolygon' ? 'Phong' : 'Toon';
+			var floatyMat = name == 'poolygon' ?
+				new THREE.MeshPhongMaterial({
+					map: floatyTexture,
+					specular: 0x333333,
+					shininess: 20
+				}) : new THREE.MeshToonMaterial({
+					map: floatyTexture,
+					gradientMap: gradientTexture
+				});
 
-			var floatyMat = new THREE['Mesh' + mat + 'Material']({
-				map: floatyTexture,
-				specular: 0x333333,
-				shininess: 20
-			});
-
-			
-
-			gltfLoader.load( 'models/' + name + '.glb', function( gltf ) {
-				var floaty = window[name] = gltf.scene.children[0];
+			glbLoader.load( name + '.glb', function( gltf ) {
+				var floaty = gltf.scene.children[0];
 				floaty.material = floatyMat;
 				floaty.name = name;
 				floaty.scale.setScalar( .15 );
 				scene.add( floaty );
-				floaties.push( floaty );
+				floaties[name] = floaty;
 
 				floaty.castShadow = true;
 			});
@@ -532,7 +517,7 @@
 
 		// shadows
 		renderer.shadowMap.enabled = true;
-		renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+		renderer.shadowMap.type = THREE.PCFShadowMap;
 		dLight.castShadow = true; // default false
 		dLight.shadow.mapSize.width = 2048;
 		dLight.shadow.mapSize.height = 2048;
@@ -542,8 +527,6 @@
 		// dLight.shadow.camera.left = - 64;
 		// dLight.shadow.camera.top	= 64;
 		// dLight.shadow.camera.bottom = - 64;
-		floor.receiveShadow = true;
-		water.mesh.receiveShadow = true;
 		var camHelper = new THREE.CameraHelper( dLight.shadow.camera );
 
 		if ( config.helpers ) {
@@ -552,7 +535,7 @@
 
 		// gui controls
 
-		var gui = new lil.GUI();
+		var gui = new GUI();
 		gui.close();
 
 		gui.add( config, 'helpers' ).onChange(function(showHelpers){
@@ -575,17 +558,19 @@
 			camera.updateProjectionMatrix();
 			renderer.setSize( window.innerWidth, window.innerHeight );
 		}
-
+		
 		function loop() {
 
-			var delta = clock.getDelta();
-			var time = clock.elapsedTime;
+			timer.update();
 
-			// floaty water bob up and down animation
+			var delta = timer.getDelta();
+			var time = timer.getElapsed();
 
-			for ( var i = 0; i < floaties.length; i++ ) {
-				floaties[i].position.y = Math.sin( time * 8 + i ) * .025;
-				floaties[i].rotation.z = - Math.sin( time * 8 + 2 + i ) * THREE.Math.degToRad( 2.5 );
+			// floaty bob up and down animation
+
+			for ( var i = 0; i < floatiesArr.length; i++ ) {
+				floatiesArr[i].position.y = Math.sin( time * 8 + i ) * .025;
+				floatiesArr[i].rotation.z = - Math.sin( time * 8 + 2 + i ) * THREE.MathUtils.degToRad( 2.5 );
 			}
 
 			ballGroup.position.y = Math.sin( time * 8 ) * .025
@@ -595,7 +580,7 @@
 			// move and rotate with keyboard
 
 			var moveDistance = 2 * delta; // move 2 units per second
-			var rotateAngle = THREE.Math.degToRad( 180 ) * delta; // rotate 180 degrees per second
+			var rotateAngle = THREE.MathUtils.degToRad( 180 ) * delta; // rotate 180 degrees per second
 
 			// move forwards
 			if ( keyboard.pressed('W') || keyboard.pressed('up') ) {
@@ -647,12 +632,9 @@
 			lerp( wavidGroup.position, 'z', wavidDest.position.z );
 			lerp( wavidGroup.rotation, 'y', wavidDest.rotation.y );
 
-			water.heightmapVariable.material.uniforms.wakePos1.value.set(
-				wavidGroup.position.x,
-				wavidGroup.position.z
-			).multiplyScalar( 100 );
+			water.update( wavidGroup.position );
 
-			water.update( time );
+			// 
 
 			// reset to center
 			if ( keyboard.pressed('Z') ) {
@@ -685,7 +667,7 @@
 			wavidBody.setPosition( wavidGroup.position );
 			wavidBody.setRotation({
 				x: 0,
-				y: THREE.Math.radToDeg( wavidGroup.rotation.y ),
+				y: THREE.MathUtils.radToDeg( wavidGroup.rotation.y ),
 				z: 0
 			});
 
