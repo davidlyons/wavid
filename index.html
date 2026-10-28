@@ -50,11 +50,11 @@
 		Use WASD, arrow keys or gamepad to swim.<br>
 	</div>
 
-	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r97/build/three.js"></script>
-	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r97/examples/js/controls/OrbitControls.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.2/dat.gui.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r98/build/three.js"></script>
+	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r98/examples/js/controls/OrbitControls.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/lil-gui@0.21.0"></script>
 
-	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r97/examples/js/loaders/FBXLoader.js"></script>
+	<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r98/examples/js/loaders/GLTFLoader.js"></script>
 
 	<script src="js/THREEx.KeyboardState.js"></script>
 	<script src="js/THREEx.FullScreen.js"></script>
@@ -139,8 +139,7 @@
 		// controls.enabled = false;
 
 		var textureLoader = new THREE.TextureLoader();
-		var jsonLoader = new THREE.JSONLoader();
-		var fbxLoader = new THREE.FBXLoader();
+		var gltfLoader = new THREE.GLTFLoader();
 
 		// ----------------------------------------------------------------
 
@@ -387,8 +386,8 @@
 
 		var sphereBody;
 
-		fbxLoader.load('models/soccerball.fbx', function(fbx){
-			ball = fbx.children[0];
+		gltfLoader.load('models/soccerball.glb', function(gltf){
+			ball = gltf.scene.children[0];
 			ball.position.set( 0, .6, 0 );
 			ball.castShadow = true;
 			ballGroup.add( ball );
@@ -472,14 +471,18 @@
 
 		// wavid
 
+		const wavidColor = textureLoader.load( 'models/wavid.png' );
+		wavidColor.flipY = false;
+
 		var wavidMat = new THREE.MeshToonMaterial({
-			map: textureLoader.load( 'models/wavid.png' ),
+			map: wavidColor,
 			specular: 0x333333,
 			shininess: 20
 		});
 
-		jsonLoader.load( 'models/wavid.js', function(geometry) {
-			wavidMesh = new THREE.Mesh( geometry, wavidMat );
+		gltfLoader.load( 'models/wavid.glb', function(gltf) {
+			wavidMesh = gltf.scene.children[0]
+			wavidMesh.material = wavidMat;
 			wavidMesh.name = 'wavid';
 			wavidGroup.add( wavidMesh );
 			wavidMesh.scale.setScalar( .2 );
@@ -501,16 +504,22 @@
 
 		names.forEach(function( name ) {
 
+			var floatyTexture = textureLoader.load( 'models/' + name + '.png' )
+			floatyTexture.flipY = false;
+
 			var mat = name == 'poolygon' ? 'Phong' : 'Toon';
 
 			var floatyMat = new THREE['Mesh' + mat + 'Material']({
-				map: textureLoader.load( 'models/' + name + '.png' ),
+				map: floatyTexture,
 				specular: 0x333333,
 				shininess: 20
 			});
 
-			jsonLoader.load( 'models/' + name + '.js', function( geometry ) {
-				var floaty = window[name] = new THREE.Mesh( geometry, floatyMat );
+			
+
+			gltfLoader.load( 'models/' + name + '.glb', function( gltf ) {
+				var floaty = window[name] = gltf.scene.children[0];
+				floaty.material = floatyMat;
 				floaty.name = name;
 				floaty.scale.setScalar( .15 );
 				scene.add( floaty );
@@ -543,7 +552,7 @@
 
 		// gui controls
 
-		var gui = new dat.GUI();
+		var gui = new lil.GUI();
 		gui.close();
 
 		gui.add( config, 'helpers' ).onChange(function(showHelpers){
