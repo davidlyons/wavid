@@ -28,7 +28,7 @@ export class Water extends THREE.Group {
 
     this.renderer = renderer
     this.width = 128
-    this.bounds = 5
+    this.bounds = 5 - 0.2
     this.waterMaxHeight = 0.1
     this.frame = 0
     this.pingPong = 0
