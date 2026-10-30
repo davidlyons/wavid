@@ -219,7 +219,7 @@
       var aLight = new THREE.AmbientLight(0x999999)
       scene.add(aLight)
 
-      var dLight = (window.dLight = new THREE.DirectionalLight(0xffffff, 1.4))
+      var dLight = (window.dLight = new THREE.DirectionalLight(0xffffff, 1.7))
       dLight.position.set(-0.8, 1.5, 0.8).multiplyScalar(3)
       scene.add(dLight)
 
@@ -574,6 +574,8 @@
           gui._hidden ? gui.show() : gui.hide()
         }
       })
+
+      gui.add(dLight, 'intensity', 1.0, 3.0).name('light intensity')
 
       gui.add(config, 'helpers').onChange(function (showHelpers) {
         var action = showHelpers ? 'add' : 'remove'
