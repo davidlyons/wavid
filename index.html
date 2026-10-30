@@ -482,14 +482,14 @@
       wavidColor.colorSpace = THREE.SRGBColorSpace
       wavidColor.flipY = false
 
-      const gradientTexture = textureLoader.load('textures/gradients/3.jpg')
-      gradientTexture.minFilter = THREE.NearestFilter
-      gradientTexture.magFilter = THREE.NearestFilter
-      gradientTexture.generateMipmaps = false
+      // const gradientTexture = textureLoader.load('textures/gradients/3.jpg')
+      // gradientTexture.minFilter = THREE.NearestFilter
+      // gradientTexture.magFilter = THREE.NearestFilter
+      // gradientTexture.generateMipmaps = false
 
       var wavidMat = new THREE.MeshToonMaterial({
         map: wavidColor,
-        gradientMap: gradientTexture,
+        // gradientMap: gradientTexture,
       })
 
       glbLoader.load('wavid.glb', function (gltf) {
@@ -527,7 +527,7 @@
               })
             : new THREE.MeshToonMaterial({
                 map: floatyTexture,
-                gradientMap: gradientTexture,
+                // gradientMap: gradientTexture,
               })
 
         glbLoader.load(name + '.glb', function (gltf) {
